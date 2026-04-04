@@ -330,6 +330,40 @@ class IncomeStatementTest < ActiveSupport::TestCase
     assert_equal Money.new(900, @family.currency), totals.expense_money
   end
 
+  test "investment contribution outflow total excludes hidden entries and avoids transfer double-counting" do
+    investment_account = @family.accounts.create!(
+      name: "Brokerage",
+      currency: @family.currency,
+      balance: 5000,
+      accountable: Investment.new
+    )
+
+    hidden_entry = create_transaction(
+      account: @checking_account,
+      amount: 125,
+      kind: "investment_contribution",
+      category: @family.investment_contributions_category
+    )
+    hidden_entry.update!(excluded: true)
+
+    transfer = Transfer::Creator.new(
+      family: @family,
+      source_account_id: @checking_account.id,
+      destination_account_id: investment_account.id,
+      date: Date.current,
+      amount: 300
+    ).create
+
+    # Simulate a provider-created investment_contribution inflow leg linked to the same transfer.
+    # Grouping by transfer_id should ensure this does not increase total outflow.
+    transfer.inflow_transaction.update!(kind: "investment_contribution")
+
+    income_statement = IncomeStatement.new(@family)
+    outflow_total = income_statement.investment_contributions_outflow_total(period: Period.last_30_days)
+
+    assert_equal 300, outflow_total.to_i
+  end
+
   # Tax-Advantaged Account Exclusion Tests
   test "excludes transactions from tax-advantaged Roth IRA accounts" do
     # Create a Roth IRA (tax-exempt) investment account

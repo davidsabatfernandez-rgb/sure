@@ -116,6 +116,58 @@ class IncomeStatement
     family_stats(interval: interval).find { |stat| stat.classification == "income" }&.median || 0
   end
 
+  # Dashboard-specific transfer outflow visibility.
+  # These transfers are excluded from income/expense analytics, but shown in outflows
+  # so users can track cash moving to investment/crypto accounts.
+  def investment_contributions_outflow_total(period: Period.current_month)
+    account_ids = if included_account_ids
+      included_account_ids
+    elsif user
+      family.accounts.visible.included_in_finances_for(user).pluck(:id)
+    else
+      family.accounts.visible.pluck(:id)
+    end
+    return 0 if account_ids.empty?
+
+    scope = family.transactions
+      .visible
+      .excluding_pending
+      .in_period(period)
+      .where(kind: "investment_contribution")
+      .joins(:entry)
+      .where(entries: { excluded: false, account_id: account_ids })
+      .joins(ApplicationRecord.sanitize_sql_array(
+        [
+          "LEFT JOIN exchange_rates er ON er.date = entries.date AND er.from_currency = entries.currency AND er.to_currency = ?",
+          family.currency
+        ]
+      ))
+
+    rows = ActiveRecord::Base.connection.select_all(
+      ActiveRecord::Base.sanitize_sql_array([
+        <<~SQL,
+          SELECT
+            COALESCE(e.transfer_id, e.id) AS group_id,
+            GREATEST(
+              SUM(CASE WHEN e.amount > 0 THEN e.amount * COALESCE(er.rate, 1) ELSE 0 END),
+              ABS(SUM(CASE WHEN e.amount < 0 THEN e.amount * COALESCE(er.rate, 1) ELSE 0 END))
+            ) AS total
+          FROM (#{scope.select("entries.id").to_sql}) filtered
+          JOIN entries e ON e.id = filtered.id
+          LEFT JOIN exchange_rates er ON (
+            er.date = e.date
+            AND er.from_currency = e.currency
+            AND er.to_currency = :target_currency
+          )
+          GROUP BY COALESCE(e.transfer_id, e.id)
+        SQL
+        { target_currency: family.currency }
+      ])
+    )
+
+    rows.sum { |row| row["total"].to_d }
+  end
+
   private
     ScopeTotals = Data.define(:transactions_count, :income_money, :expense_money)
     PeriodTotal = Data.define(:classification, :total, :currency, :category_totals)

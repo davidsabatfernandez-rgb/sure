@@ -24,7 +24,7 @@ class PagesController < ApplicationController
     @cashflow_sankey_data = build_cashflow_sankey_data(net_totals, income_totals, expense_totals, family_currency)
     @outflows_data = build_outflows_donut_data(
       net_totals,
-      investment_contributions_total: investment_contributions_outflow_total(@period)
+      investment_contributions_total: income_statement.investment_contributions_outflow_total(period: @period)
     )
 
     @dashboard_sections = build_dashboard_sections
@@ -354,32 +354,13 @@ class PagesController < ApplicationController
       categories.reject! { |category| category[:amount].zero? }
       categories.sort_by! { |category| -category[:amount] }
 
+      # Includes transfer outflows in the same donut, so percentages here represent
+      # share of total outflows (expenses + investment contribution transfers).
       categories.each do |category|
         category[:percentage] = donut_total.zero? ? 0 : ((category[:amount] / donut_total) * 100).round(1)
       end
 
       { categories: categories, total: donut_total.to_f.round(2), currency: net_totals.currency, currency_symbol: currency_symbol }
-    end
-
-    # Total transfer outflows to investment/crypto accounts for dashboard outflow visibility.
-    # These transactions are excluded from budget/report expense analytics, but still shown
-    # in outflows so users can track where cash moved during the selected period.
-    def investment_contributions_outflow_total(period)
-      scope = Current.family.transactions
-        .visible
-        .excluding_pending
-        .in_period(period)
-        .where(kind: "investment_contribution")
-        .joins(entry: :account)
-        .joins(ApplicationRecord.sanitize_sql_array(
-          [
-            "LEFT JOIN exchange_rates er ON er.date = entries.date AND er.from_currency = entries.currency AND er.to_currency = ?",
-            Current.family.currency
-          ]
-        ))
-        .merge(Account.included_in_finances_for(Current.user))
-
-      scope.sum("ABS(entries.amount * COALESCE(er.rate, 1))")
     end
 
     def ensure_intro_guest!
