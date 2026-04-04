@@ -149,7 +149,6 @@ class IncomeStatement
           SELECT
             -- Group both legs of a linked transfer together, while keeping standalone
             -- (non-transfer) entries as independent rows.
-            COALESCE(e.transfer_id, e.id) AS group_id,
             -- Count each transfer once as outflow:
             -- 1) positive-leg sum for standard source-side outflows
             -- 2) abs(negative-leg sum) for provider/import cases where only inflow leg exists

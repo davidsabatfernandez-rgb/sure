@@ -382,6 +382,7 @@ class IncomeStatementTest < ActiveSupport::TestCase
       amount: 300
     ).create
     transfer.inflow_transaction.update!(kind: "investment_contribution")
+    assert_equal "investment_contribution", transfer.inflow_transaction.reload.kind
 
     @checking_account.share_with!(user, permission: "read_only", include_in_finances: false)
     investment_account.share_with!(user, permission: "read_only", include_in_finances: true)
