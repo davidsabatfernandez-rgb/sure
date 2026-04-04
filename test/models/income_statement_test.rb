@@ -364,6 +364,34 @@ class IncomeStatementTest < ActiveSupport::TestCase
     assert_equal 300, outflow_total.to_i
   end
 
+  test "investment contribution outflow total counts inflow leg when source account is not included in finances" do
+    user = users(:family_member)
+    investment_account = @family.accounts.create!(
+      name: "Shared Brokerage",
+      currency: @family.currency,
+      balance: 5000,
+      owner: users(:family_admin),
+      accountable: Investment.new
+    )
+
+    transfer = Transfer::Creator.new(
+      family: @family,
+      source_account_id: @checking_account.id,
+      destination_account_id: investment_account.id,
+      date: Date.current,
+      amount: 300
+    ).create
+    transfer.inflow_transaction.update!(kind: "investment_contribution")
+
+    @checking_account.share_with!(user, permission: "read_only", include_in_finances: false)
+    investment_account.share_with!(user, permission: "read_only", include_in_finances: true)
+
+    income_statement = IncomeStatement.new(@family, user: user)
+    outflow_total = income_statement.investment_contributions_outflow_total(period: Period.last_30_days)
+
+    assert_equal 300, outflow_total.to_i
+  end
+
   # Tax-Advantaged Account Exclusion Tests
   test "excludes transactions from tax-advantaged Roth IRA accounts" do
     # Create a Roth IRA (tax-exempt) investment account

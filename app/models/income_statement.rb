@@ -147,7 +147,12 @@ class IncomeStatement
       ActiveRecord::Base.sanitize_sql_array([
         <<~SQL,
           SELECT
+            -- Group both legs of a linked transfer together, while keeping standalone
+            -- (non-transfer) entries as independent rows.
             COALESCE(e.transfer_id, e.id) AS group_id,
+            -- Count each transfer once as outflow:
+            -- 1) positive-leg sum for standard source-side outflows
+            -- 2) abs(negative-leg sum) for provider/import cases where only inflow leg exists
             GREATEST(
               SUM(CASE WHEN e.amount > 0 THEN e.amount * COALESCE(er.rate, 1) ELSE 0 END),
               ABS(SUM(CASE WHEN e.amount < 0 THEN e.amount * COALESCE(er.rate, 1) ELSE 0 END))
