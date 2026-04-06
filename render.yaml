@@ -1,0 +1,92 @@
+services:
+  # Web server
+  - type: web
+    name: sure
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_FORCE_SSL
+        value: "true"
+      - key: RAILS_ASSUME_SSL
+        value: "true"
+      - key: SELF_HOSTED
+        value: "true"
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: DB_HOST
+        fromDatabase:
+          name: sure-db
+          property: host
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: sure-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: sure-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: sure-db
+          property: password
+      - key: DB_PORT
+        value: "5432"
+      - key: REDIS_URL
+        fromService:
+          name: sure-redis
+          type: redis
+          property: connectionString
+      - key: ONBOARDING_STATE
+        value: open
+
+  # Sidekiq worker
+  - type: worker
+    name: sure-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: bundle exec sidekiq
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: SELF_HOSTED
+        value: "true"
+      - key: SECRET_KEY_BASE
+        fromService:
+          name: sure
+          type: web
+          envVarKey: SECRET_KEY_BASE
+      - key: DB_HOST
+        fromDatabase:
+          name: sure-db
+          property: host
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: sure-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: sure-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: sure-db
+          property: password
+      - key: DB_PORT
+        value: "5432"
+      - key: REDIS_URL
+        fromService:
+          name: sure-redis
+          type: redis
+          property: connectionString
+
+databases:
+  - name: sure-db
+    plan: free
+    databaseName: sure_production
+    user: sure_user
+
+  - name: sure-redis
+    type: redis
+    plan: free
