@@ -81,12 +81,15 @@ services:
           type: redis
           property: connectionString
 
+  # Redis
+  - type: redis
+    name: sure-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
 databases:
   - name: sure-db
     plan: free
     databaseName: sure_production
     user: sure_user
-
-  - name: sure-redis
-    type: redis
-    plan: free
