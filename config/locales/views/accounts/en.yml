@@ -116,6 +116,7 @@ en:
       property: Property
       vehicle: Vehicle
       other_asset: Other Asset
+      conjunta: Conjunta
       credit_card: Credit Card
       loan: Loan
       other_liability: Other Liability
