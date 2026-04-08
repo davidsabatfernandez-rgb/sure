@@ -4,6 +4,9 @@ class PropertyInmueblesController < ApplicationController
   def show
     @property = @account.accountable
     @reforms = @property.reforms.ordered
+    @expenses_recurrentes = @property.property_expenses.recurrentes.ordered
+    @expenses_puntuales = @property.property_expenses.puntuales.ordered
+    @scenarios = @property.property_scenarios.order(:created_at)
     @hipoteca = find_linked_hipoteca
   end
 
@@ -11,9 +14,9 @@ class PropertyInmueblesController < ApplicationController
     @property = @account.accountable
 
     if @property.update(rental_params)
-      redirect_to property_inmueble_path(@account), notice: "Datos de alquiler actualizados"
+      redirect_to account_inmueble_path(@account), notice: "Datos actualizados"
     else
-      redirect_to property_inmueble_path(@account), alert: "Error al actualizar"
+      redirect_to account_inmueble_path(@account), alert: "Error al actualizar"
     end
   end
 

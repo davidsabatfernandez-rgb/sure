@@ -387,6 +387,8 @@ Rails.application.routes.draw do
       patch :update_rental
     end
     resources :reforms, only: [:create, :update, :destroy]
+    resources :property_expenses, only: [:create, :update, :destroy]
+    resources :property_scenarios, only: [:create, :update, :destroy]
   end
 
   resource :patrimonio, only: :show, controller: "patrimonio" do

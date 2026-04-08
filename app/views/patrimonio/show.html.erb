@@ -17,11 +17,12 @@
   <%# Big number %>
   <div class="bg-container shadow-border-xs rounded-xl p-8 text-center">
     <p class="text-sm text-secondary mb-2">Patrimonio neto total</p>
-    <p class="text-4xl font-bold <%= @net_worth.amount >= 0 ? 'text-success' : 'text-destructive' %>">
+    <p class="text-4xl font-bold <%= @net_worth >= 0 ? 'text-success' : 'text-destructive' %>">
       <%= format_money(@net_worth) %>
     </p>
     <% if @previous_snapshot %>
-      <% diff = @net_worth.amount - @previous_snapshot.patrimonio_neto %>
+      <% nw_val = @net_worth.respond_to?(:amount) ? @net_worth.amount : @net_worth.to_f %>
+      <% diff = nw_val - @previous_snapshot.patrimonio_neto %>
       <% diff_pct = @previous_snapshot.patrimonio_neto != 0 ? (diff / @previous_snapshot.patrimonio_neto * 100).round(1) : 0 %>
       <p class="text-sm mt-2 <%= diff >= 0 ? 'text-success' : 'text-destructive' %>">
         <%= diff >= 0 ? "+" : "" %><%= number_to_currency(diff, unit: "", delimiter: ".", separator: ",") %> EUR
@@ -75,8 +76,10 @@
   <%# Leverage ratio bar %>
   <div class="bg-container shadow-border-xs rounded-xl p-4">
     <h2 class="text-lg font-medium text-primary mb-3">Ratio activos / pasivos</h2>
-    <% total = @assets.total.amount + @liabilities.total.amount.abs %>
-    <% assets_pct = total > 0 ? (@assets.total.amount / total * 100).round(1) : 100 %>
+    <% assets_val = @assets.total.respond_to?(:amount) ? @assets.total.amount : @assets.total.to_f %>
+    <% liabilities_val = @liabilities.total.respond_to?(:amount) ? @liabilities.total.amount.abs : @liabilities.total.to_f.abs %>
+    <% total = assets_val + liabilities_val %>
+    <% assets_pct = total > 0 ? (assets_val / total * 100).round(1) : 100 %>
     <% liabilities_pct = 100 - assets_pct %>
     <div class="flex h-8 rounded-lg overflow-hidden">
       <div class="bg-green-500 flex items-center justify-center text-white text-xs font-medium" style="width: <%= assets_pct %>%">

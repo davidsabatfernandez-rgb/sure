@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_07_100002) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -1102,6 +1102,37 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_07_100002) do
     t.integer "ocupacion_pct", default: 100
   end
 
+  create_table "property_expenses", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "property_id", null: false
+    t.string "concepto", null: false
+    t.decimal "importe", precision: 19, scale: 4, null: false
+    t.string "tipo", default: "puntual", null: false
+    t.string "frecuencia"
+    t.string "categoria"
+    t.date "fecha"
+    t.text "notas"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["property_id", "tipo"], name: "index_property_expenses_on_property_id_and_tipo"
+    t.index ["property_id"], name: "index_property_expenses_on_property_id"
+  end
+
+  create_table "property_scenarios", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "property_id", null: false
+    t.string "nombre", null: false
+    t.decimal "precio_compra", precision: 19, scale: 4, default: "0.0"
+    t.decimal "gastos_compra", precision: 19, scale: 4, default: "0.0"
+    t.decimal "reformas_estimadas", precision: 19, scale: 4, default: "0.0"
+    t.decimal "valor_estimado_post", precision: 19, scale: 4, default: "0.0"
+    t.decimal "renta_mensual_estimada", precision: 19, scale: 4, default: "0.0"
+    t.decimal "gastos_anuales_estimados", precision: 19, scale: 4, default: "0.0"
+    t.integer "ocupacion_pct", default: 100
+    t.text "notas"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["property_id"], name: "index_property_scenarios_on_property_id"
+  end
+
   create_table "recurring_transactions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.uuid "merchant_id"
@@ -1622,6 +1653,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_07_100002) do
   add_foreign_key "oidc_identities", "users"
   add_foreign_key "plaid_accounts", "plaid_items"
   add_foreign_key "plaid_items", "families"
+  add_foreign_key "property_expenses", "properties"
+  add_foreign_key "property_scenarios", "properties"
   add_foreign_key "recurring_transactions", "accounts"
   add_foreign_key "recurring_transactions", "families"
   add_foreign_key "recurring_transactions", "merchants"

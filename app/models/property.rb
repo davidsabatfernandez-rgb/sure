@@ -12,6 +12,8 @@ class Property < ApplicationRecord
 
   has_one :address, as: :addressable, dependent: :destroy
   has_many :reforms, dependent: :destroy
+  has_many :property_expenses, dependent: :destroy
+  has_many :property_scenarios, dependent: :destroy
 
   accepts_nested_attributes_for :address
 
@@ -54,6 +56,14 @@ class Property < ApplicationRecord
   # Financial calculations for inmuebles module
   def total_reformas
     reforms.sum(:importe)
+  end
+
+  def total_gastos_recurrentes_anual
+    property_expenses.recurrentes.sum { |e| e.coste_anual }
+  end
+
+  def total_gastos_puntuales
+    property_expenses.puntuales.sum(:importe)
   end
 
   def inversion_total
