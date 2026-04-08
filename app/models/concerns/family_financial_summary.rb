@@ -1,16 +1,22 @@
 module FamilyFinancialSummary
   extend ActiveSupport::Concern
 
-  # Categories that are transfers between accounts, not real expenses
+  # Only these two accounts are "spending" accounts
+  SPENDING_ACCOUNT_IDS = %w[
+    88d62f0b-6993-4852-ae36-fe6cec193d2b
+    98c1eb20-896f-40d7-8075-7929726ad43b
+  ].freeze
+
+  # Categories that are transfers, not real expenses
   TRANSFER_CATEGORIES = ["Services", "Savings & Investments"].freeze
 
   def spending_entries_for(start_date, end_date)
     transfer_cat_ids = categories.where(name: TRANSFER_CATEGORIES).pluck(:id)
 
-    scope = entries
-      .where(entryable_type: "Transaction", date: start_date..end_date)
+    scope = Entry
+      .where(account_id: SPENDING_ACCOUNT_IDS, entryable_type: "Transaction", date: start_date..end_date)
       .where("entries.excluded IS NOT TRUE")
-      .where("entries.amount < 5000") # large transfers
+      .where("entries.amount < 5000")
 
     if transfer_cat_ids.any?
       scope = scope.joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
@@ -33,10 +39,10 @@ module FamilyFinancialSummary
   end
 
   def month_income(date = Date.current)
-    entries.where(date: date.beginning_of_month..date, entryable_type: "Transaction")
-           .where("entries.amount < 0")
-           .where("entries.name ILIKE '%nomina%' OR entries.name ILIKE '%level%' OR entries.name ILIKE '%iberia%'")
-           .sum("ABS(entries.amount)").to_f
+    Entry.where(account_id: SPENDING_ACCOUNT_IDS, date: date.beginning_of_month..date, entryable_type: "Transaction")
+         .where("entries.amount < 0")
+         .where("entries.name ILIKE '%nomina%' OR entries.name ILIKE '%level%' OR entries.name ILIKE '%iberia%'")
+         .sum("ABS(entries.amount)").to_f
   end
 
   def month_savings(date = Date.current)
@@ -59,12 +65,12 @@ module FamilyFinancialSummary
   def top_expense_categories(start_date, end_date, limit = 5)
     transfer_cat_ids = categories.where(name: TRANSFER_CATEGORIES).pluck(:id)
 
-    scope = entries
-      .joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
-      .joins("LEFT JOIN categories ON categories.id = transactions.category_id")
-      .where(entryable_type: "Transaction", date: start_date..end_date)
+    scope = Entry
+      .where(account_id: SPENDING_ACCOUNT_IDS, entryable_type: "Transaction", date: start_date..end_date)
       .where("entries.amount > 0 AND entries.amount < 5000")
       .where("entries.excluded IS NOT TRUE")
+      .joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
+      .joins("LEFT JOIN categories ON categories.id = transactions.category_id")
 
     scope = scope.where("transactions.category_id IS NULL OR transactions.category_id NOT IN (?)", transfer_cat_ids) if transfer_cat_ids.any?
 
