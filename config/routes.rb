@@ -396,6 +396,7 @@ Rails.application.routes.draw do
   end
 
   resource :weekly_summary, only: :show
+  resource :cashflow_mensual, only: :show
   resources :investment_rules, only: [:index, :create, :update, :destroy]
   resources :financial_alerts, only: :index do
     member do
