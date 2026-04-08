@@ -1,0 +1,44 @@
+<%= turbo_frame_tag "modal" do %>
+<%= render DS::Dialog.new(auto_open: true) do |dialog| %>
+  <% dialog.with_header(title: "#{@node_name} - Detalle") %>
+  <% dialog.with_body do %>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between p-3 bg-surface-inset rounded-lg">
+        <div>
+          <p class="text-sm text-secondary"><%= @count %> transacciones</p>
+        </div>
+        <p class="text-lg font-bold text-primary"><%= number_to_currency(@total, unit: "", delimiter: ".", separator: ",") %> &euro;</p>
+      </div>
+
+      <% if @entries.any? %>
+        <div class="max-h-[60vh] overflow-y-auto">
+          <table class="w-full text-sm">
+            <thead class="sticky top-0 bg-container">
+              <tr class="text-secondary border-b border-tertiary">
+                <th class="text-left py-2 px-2">Fecha</th>
+                <th class="text-left py-2 px-2">Concepto</th>
+                <th class="text-left py-2 px-2">Cuenta</th>
+                <th class="text-right py-2 px-2">Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @entries.each do |entry| %>
+                <tr class="border-b border-tertiary hover:bg-surface-inset transition-colors">
+                  <td class="py-2 px-2 text-secondary whitespace-nowrap"><%= entry.date.strftime("%d/%m/%Y") %></td>
+                  <td class="py-2 px-2 text-primary"><%= entry.name %></td>
+                  <td class="py-2 px-2 text-secondary text-xs"><%= entry.account&.name&.truncate(20) %></td>
+                  <td class="py-2 px-2 text-right font-medium whitespace-nowrap <%= entry.amount < 0 ? 'text-success' : 'text-destructive' %>">
+                    <%= entry.amount < 0 ? "+" : "-" %><%= number_to_currency(entry.amount.abs, unit: "", delimiter: ".", separator: ",") %> &euro;
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-sm text-secondary text-center py-8">No hay transacciones para "<%= @node_name %>"</p>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>
+<% end %>

@@ -8,7 +8,8 @@ export default class extends Controller {
     data: Object,
     nodeWidth: { type: Number, default: 15 },
     nodePadding: { type: Number, default: 20 },
-    currencySymbol: { type: String, default: "$" }
+    currencySymbol: { type: String, default: "$" },
+    detailUrl: { type: String, default: "/cashflow_detail" }
   };
 
   // Visual constants
@@ -316,9 +317,12 @@ export default class extends Controller {
         this.#hideTooltip();
       });
 
-    // Hover on node rectangles (not just text)
+    // Click on nodes to show detail
     nodeGroups.selectAll("path")
-      .style("cursor", "default")
+      .style("cursor", "pointer")
+      .on("click", (event, d) => {
+        this.#openNodeDetail(d.name);
+      })
       .on("mouseenter", (event, d) => {
         const connectedLinks = sankeyData.links.filter(l => l.source === d || l.target === d);
         applyHover(connectedLinks);
@@ -331,6 +335,10 @@ export default class extends Controller {
       });
 
     nodeGroups.selectAll("text")
+      .style("cursor", "pointer")
+      .on("click", (event, d) => {
+        this.#openNodeDetail(d.name);
+      })
       .on("mouseenter", (event, d) => {
         const connectedLinks = sankeyData.links.filter(l => l.source === d || l.target === d);
         applyHover(connectedLinks);
@@ -394,6 +402,23 @@ export default class extends Controller {
         .duration(100)
         .style("opacity", 0)
         .style("pointer-events", "none");
+    }
+  }
+
+  #openNodeDetail(nodeName) {
+    // Get current period from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const period = urlParams.get("period") || "last_30_days";
+    const url = `${this.detailUrlValue}?node=${encodeURIComponent(nodeName)}&period=${period}`;
+
+    // Use Turbo to load into modal frame
+    const frame = document.querySelector("turbo-frame#modal");
+    if (frame) {
+      frame.src = url;
+      frame.reload();
+    } else {
+      // Fallback: navigate
+      window.Turbo.visit(url, { frame: "modal" });
     }
   }
 
