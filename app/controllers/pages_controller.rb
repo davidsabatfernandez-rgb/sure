@@ -15,11 +15,11 @@ class PagesController < ApplicationController
 
     family_currency = Current.family.currency
 
-    # Use IncomeStatement for all cashflow data (now includes categorized trades)
+    # Use IncomeStatement scoped to spending accounts only (Rev Card + Sabadell Fijos)
     income_statement = Current.family.income_statement
-    income_totals = income_statement.income_totals(period: @period)
-    expense_totals = income_statement.expense_totals(period: @period)
-    net_totals = income_statement.net_category_totals(period: @period)
+    income_totals = income_statement.income_totals(period: @period, account_ids: FamilyFinancialSummary::SPENDING_ACCOUNT_IDS)
+    expense_totals = income_statement.expense_totals(period: @period, account_ids: FamilyFinancialSummary::SPENDING_ACCOUNT_IDS)
+    net_totals = income_statement.net_category_totals(period: @period, account_ids: FamilyFinancialSummary::SPENDING_ACCOUNT_IDS)
 
     @cashflow_sankey_data = build_cashflow_sankey_data(net_totals, income_totals, expense_totals, family_currency)
     @outflows_data = build_outflows_donut_data(net_totals)
