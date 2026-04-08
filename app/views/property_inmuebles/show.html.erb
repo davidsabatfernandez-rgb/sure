@@ -1,0 +1,166 @@
+<% content_for :breadcrumbs do %>
+  <%= render "layouts/shared/breadcrumbs", breadcrumbs: [
+    { label: "Accounts", href: accounts_path },
+    { label: @account.name, href: account_path(@account) },
+    { label: "Inmueble" }
+  ] %>
+<% end %>
+
+<div class="space-y-6 max-w-screen-lg mx-auto py-6">
+  <h1 class="text-2xl font-bold text-primary"><%= @account.name %> - Ficha inmueble</h1>
+
+  <%# Summary cards %>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary mb-1">Inversi&oacute;n total</p>
+      <p class="text-lg font-semibold text-primary"><%= number_to_currency(@property.inversion_total, unit: "EUR", locale: :es) %></p>
+    </div>
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary mb-1">Valor actual estimado</p>
+      <p class="text-lg font-semibold text-primary"><%= format_money(@account.balance_money) %></p>
+    </div>
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary mb-1">PnL latente</p>
+      <p class="text-lg font-semibold <%= @property.pnl_latente >= 0 ? 'text-success' : 'text-destructive' %>">
+        <%= number_to_currency(@property.pnl_latente, unit: "", delimiter: ".", separator: ",") %> EUR
+        (<%= @property.pnl_latente_pct %>%)
+      </p>
+    </div>
+    <% if @hipoteca %>
+      <div class="bg-container shadow-border-xs rounded-xl p-4">
+        <p class="text-xs text-secondary mb-1">Equity real</p>
+        <p class="text-lg font-semibold text-primary"><%= number_to_currency(@property.equity_real(@hipoteca), unit: "EUR", locale: :es) %></p>
+      </div>
+    <% else %>
+      <div class="bg-container shadow-border-xs rounded-xl p-4">
+        <p class="text-xs text-secondary mb-1">Equity real</p>
+        <p class="text-lg font-semibold text-primary"><%= format_money(@account.balance_money) %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Cost breakdown %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4">
+    <h2 class="text-lg font-medium text-primary mb-4">Desglose de costes</h2>
+    <div class="space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-secondary">Precio compra</span>
+        <span class="font-medium text-primary"><%= @property.purchase_price ? format_money(@property.purchase_price) : "N/A" %></span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-secondary">Gastos compra (notar&iacute;a, ITP, gestor&iacute;a)</span>
+        <span class="font-medium text-primary"><%= number_to_currency(@property.gastos_compra || 0, unit: "", delimiter: ".", separator: ",") %> EUR</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-secondary">Reformas (<%= @reforms.count %>)</span>
+        <span class="font-medium text-primary"><%= number_to_currency(@property.total_reformas, unit: "", delimiter: ".", separator: ",") %> EUR</span>
+      </div>
+      <hr class="border-tertiary">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-semibold text-primary">Inversi&oacute;n total</span>
+        <span class="font-bold text-primary"><%= number_to_currency(@property.inversion_total, unit: "", delimiter: ".", separator: ",") %> EUR</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-secondary">vs Valor estimado</span>
+        <span class="font-medium <%= @property.pnl_latente >= 0 ? 'text-success' : 'text-destructive' %>">
+          <%= @property.pnl_latente >= 0 ? "+" : "" %><%= number_to_currency(@property.pnl_latente, unit: "", delimiter: ".", separator: ",") %> EUR
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <%# Reforms management %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4">
+    <h2 class="text-lg font-medium text-primary mb-4">Reformas</h2>
+
+    <% if @reforms.any? %>
+      <div class="space-y-2 mb-4">
+        <% @reforms.each do |reform| %>
+          <div class="flex items-center justify-between p-3 bg-surface-inset rounded-lg">
+            <div>
+              <p class="text-sm font-medium text-primary"><%= reform.concepto %></p>
+              <p class="text-xs text-secondary"><%= reform.fecha.strftime("%d/%m/%Y") %></p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-primary"><%= number_to_currency(reform.importe, unit: "", delimiter: ".", separator: ",") %> EUR</span>
+              <%= button_to account_reform_path(@account, reform), method: :delete,
+                    class: "text-secondary hover:text-destructive",
+                    data: { turbo_confirm: "Eliminar esta reforma?" } do %>
+                <%= icon("trash-2", size: "sm") %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= styled_form_with url: account_reforms_path(@account), method: :post, class: "flex items-end gap-2" do |form| %>
+      <div class="flex-1">
+        <%= form.text_field :concepto, label: "Concepto", placeholder: "Cocina, ba&ntilde;o...", required: true %>
+      </div>
+      <div class="w-32">
+        <%= form.number_field :importe, label: "Importe", placeholder: "0", min: 0, step: 0.01, required: true %>
+      </div>
+      <div class="w-36">
+        <%= form.date_field :fecha, label: "Fecha", value: Date.current, required: true %>
+      </div>
+      <%= render DS::Button.new(text: "A&ntilde;adir", variant: "primary", size: "sm") %>
+    <% end %>
+  </div>
+
+  <%# Rental calculator %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4">
+    <h2 class="text-lg font-medium text-primary mb-4">Calculadora rentabilidad alquiler</h2>
+
+    <%= styled_form_with model: @property, url: update_rental_account_inmueble_path(@account), method: :patch do |form| %>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div>
+          <%= form.number_field :renta_mensual, label: "Renta mensual (EUR)", value: @property.renta_mensual, min: 0, step: 10 %>
+        </div>
+        <div>
+          <%= form.number_field :gastos_anuales_alquiler, label: "Gastos anuales (EUR)", value: @property.gastos_anuales_alquiler, min: 0, step: 10 %>
+        </div>
+        <div>
+          <%= form.number_field :ocupacion_pct, label: "Ocupaci&oacute;n (%)", value: @property.ocupacion_pct, min: 0, max: 100, step: 5 %>
+        </div>
+        <div>
+          <%= form.number_field :gastos_compra, label: "Gastos compra (EUR)", value: @property.gastos_compra, min: 0, step: 100 %>
+        </div>
+      </div>
+      <div class="flex justify-end mb-4">
+        <%= render DS::Button.new(text: "Guardar", variant: "primary", size: "sm") %>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      <div class="p-3 bg-surface-inset rounded-lg">
+        <p class="text-xs text-secondary mb-1">Renta anual bruta</p>
+        <p class="font-semibold text-primary"><%= number_to_currency(@property.renta_anual_bruta, unit: "", delimiter: ".", separator: ",") %> EUR</p>
+      </div>
+      <div class="p-3 bg-surface-inset rounded-lg">
+        <p class="text-xs text-secondary mb-1">Rentabilidad bruta</p>
+        <p class="font-semibold text-primary"><%= @property.rentabilidad_bruta %>%</p>
+      </div>
+      <div class="p-3 bg-surface-inset rounded-lg">
+        <p class="text-xs text-secondary mb-1">Renta neta anual</p>
+        <p class="font-semibold text-primary"><%= number_to_currency(@property.renta_neta_anual, unit: "", delimiter: ".", separator: ",") %> EUR</p>
+      </div>
+      <div class="p-3 bg-surface-inset rounded-lg">
+        <p class="text-xs text-secondary mb-1">Rentabilidad neta</p>
+        <p class="font-semibold <%= @property.rentabilidad_neta > 0 ? 'text-success' : 'text-secondary' %>"><%= @property.rentabilidad_neta %>%</p>
+      </div>
+      <div class="p-3 bg-surface-inset rounded-lg">
+        <p class="text-xs text-secondary mb-1">Cash flow mensual neto</p>
+        <p class="font-semibold text-primary"><%= number_to_currency(@property.cash_flow_mensual_neto, unit: "", delimiter: ".", separator: ",") %> EUR</p>
+      </div>
+      <div class="p-3 bg-surface-inset rounded-lg">
+        <p class="text-xs text-secondary mb-1">Payback</p>
+        <p class="font-semibold text-primary"><%= @property.payback_years ? "#{@property.payback_years} a&ntilde;os" : "N/A" %></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-center">
+    <%= link_to "Volver a la cuenta", account_path(@account), class: "text-sm text-secondary hover:text-primary" %>
+  </div>
+</div>

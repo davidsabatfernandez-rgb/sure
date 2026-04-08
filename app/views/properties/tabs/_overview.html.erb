@@ -28,11 +28,17 @@
   <% end %>
 </div>
 
-<div class="flex justify-center py-8">
+<div class="flex justify-center gap-4 py-8">
   <%= render DS::Link.new(
     text: "Edit account details",
     href: edit_property_path(account),
     variant: "ghost",
     frame: :modal
+  ) %>
+  <%= render DS::Link.new(
+    text: "Ficha inmueble",
+    variant: "outline",
+    href: account_inmueble_path(account),
+    frame: :_top
   ) %>
 </div>

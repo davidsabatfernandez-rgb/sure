@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_07_100002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -40,7 +40,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.index ["account_id"], name: "index_account_shares_on_account_id"
     t.index ["user_id", "include_in_finances"], name: "index_account_shares_on_user_id_and_include_in_finances"
     t.index ["user_id"], name: "index_account_shares_on_user_id"
-    t.check_constraint "permission::text = ANY (ARRAY['full_control'::character varying, 'read_write'::character varying, 'read_only'::character varying]::text[])", name: "chk_account_shares_permission"
+    t.check_constraint "permission::text = ANY (ARRAY['full_control'::character varying::text, 'read_write'::character varying::text, 'read_only'::character varying::text])", name: "chk_account_shares_permission"
   end
 
   create_table "accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -312,6 +312,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.index ["status"], name: "index_coinstats_items_on_status"
   end
 
+  create_table "conjuntas", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "locked_attributes", default: {}
+    t.string "subtype"
+  end
+
   create_table "credit_cards", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -539,7 +546,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.string "moniker", default: "Family", null: false
     t.string "assistant_type", default: "builtin", null: false
     t.string "default_account_sharing", default: "shared", null: false
-    t.check_constraint "default_account_sharing::text = ANY (ARRAY['shared'::character varying, 'private'::character varying]::text[])", name: "chk_families_default_account_sharing"
+    t.check_constraint "default_account_sharing::text = ANY (ARRAY['shared'::character varying::text, 'private'::character varying::text])", name: "chk_families_default_account_sharing"
     t.check_constraint "month_start_day >= 1 AND month_start_day <= 28", name: "month_start_day_range"
   end
 
@@ -950,6 +957,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.index ["user_id"], name: "index_mobile_devices_on_user_id"
   end
 
+  create_table "net_worth_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.date "fecha", null: false
+    t.decimal "activos", precision: 19, scale: 4, null: false
+    t.decimal "pasivos", precision: 19, scale: 4, null: false
+    t.decimal "patrimonio_neto", precision: 19, scale: 4, null: false
+    t.jsonb "desglose", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "fecha"], name: "index_net_worth_snapshots_on_family_id_and_fecha", unique: true
+    t.index ["family_id"], name: "index_net_worth_snapshots_on_family_id"
+  end
+
   create_table "oauth_access_grants", force: :cascade do |t|
     t.string "resource_owner_id", null: false
     t.bigint "application_id", null: false
@@ -1075,6 +1095,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.string "area_unit"
     t.jsonb "locked_attributes", default: {}
     t.string "subtype"
+    t.decimal "gastos_compra", precision: 19, scale: 4, default: "0.0"
+    t.decimal "valor_post_reforma", precision: 19, scale: 4
+    t.decimal "renta_mensual", precision: 19, scale: 4, default: "0.0"
+    t.decimal "gastos_anuales_alquiler", precision: 19, scale: 4, default: "0.0"
+    t.integer "ocupacion_pct", default: 100
   end
 
   create_table "recurring_transactions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1102,6 +1127,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.index ["family_id"], name: "index_recurring_transactions_on_family_id"
     t.index ["merchant_id"], name: "index_recurring_transactions_on_merchant_id"
     t.index ["next_expected_date"], name: "index_recurring_transactions_on_next_expected_date"
+  end
+
+  create_table "reforms", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "property_id", null: false
+    t.string "concepto", null: false
+    t.decimal "importe", precision: 19, scale: 4, null: false
+    t.date "fecha", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["property_id"], name: "index_reforms_on_property_id"
   end
 
   create_table "rejected_transfers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1184,7 +1219,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.index ["country_code"], name: "index_securities_on_country_code"
     t.index ["exchange_operating_mic"], name: "index_securities_on_exchange_operating_mic"
     t.index ["kind"], name: "index_securities_on_kind"
-    t.check_constraint "kind = ANY (ARRAY['standard'::text, 'cash'::text])", name: "chk_securities_kind"
+    t.check_constraint "kind::text = ANY (ARRAY['standard'::text, 'cash'::text])", name: "chk_securities_kind"
   end
 
   create_table "security_prices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1514,10 +1549,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
     t.string "kind", default: "reconciliation", null: false
   end
 
-# Could not dump table "vector_store_chunks" because of following StandardError
-#   Unknown type 'vector(768)' for column 'embedding'
-
-
   create_table "vehicles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -1585,6 +1616,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
   add_foreign_key "mercury_items", "families"
   add_foreign_key "messages", "chats"
   add_foreign_key "mobile_devices", "users"
+  add_foreign_key "net_worth_snapshots", "families"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
   add_foreign_key "oidc_identities", "users"
@@ -1593,6 +1625,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_28_120000) do
   add_foreign_key "recurring_transactions", "accounts"
   add_foreign_key "recurring_transactions", "families"
   add_foreign_key "recurring_transactions", "merchants"
+  add_foreign_key "reforms", "properties"
   add_foreign_key "rejected_transfers", "transactions", column: "inflow_transaction_id"
   add_foreign_key "rejected_transfers", "transactions", column: "outflow_transaction_id"
   add_foreign_key "rule_actions", "rules"

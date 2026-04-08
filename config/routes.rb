@@ -378,6 +378,21 @@ Rails.application.routes.draw do
   resources :conjuntas, only: %i[new create edit update]
   resources :other_liabilities, only: %i[new create edit update]
 
+  # Custom financial modules
+  resources :accounts, only: [] do
+    resource :amortization, only: :show, controller: "loan_amortization" do
+      post :simulate
+    end
+    resource :inmueble, only: [:show], controller: "property_inmuebles" do
+      patch :update_rental
+    end
+    resources :reforms, only: [:create, :update, :destroy]
+  end
+
+  resource :patrimonio, only: :show, controller: "patrimonio" do
+    post :save_snapshot
+  end
+
   resources :securities, only: :index
 
   resources :invite_codes, only: %i[index create destroy]

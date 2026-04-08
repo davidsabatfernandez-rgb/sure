@@ -11,6 +11,7 @@ class Property < ApplicationRecord
   }.freeze
 
   has_one :address, as: :addressable, dependent: :destroy
+  has_many :reforms, dependent: :destroy
 
   accepts_nested_attributes_for :address
 
@@ -48,6 +49,58 @@ class Property < ApplicationRecord
 
   def opening_balance_display_name
     "original purchase price"
+  end
+
+  # Financial calculations for inmuebles module
+  def total_reformas
+    reforms.sum(:importe)
+  end
+
+  def inversion_total
+    (purchase_price&.amount || 0) + (gastos_compra || 0) + total_reformas
+  end
+
+  def pnl_latente
+    (account.balance || 0) - inversion_total
+  end
+
+  def pnl_latente_pct
+    return 0 if inversion_total.zero?
+    (pnl_latente / inversion_total * 100).round(2)
+  end
+
+  def equity_real(hipoteca_account = nil)
+    valor = account.balance || 0
+    deuda = hipoteca_account&.balance || 0
+    valor - deuda
+  end
+
+  # Rental yield calculations
+  def renta_anual_bruta
+    (renta_mensual || 0) * 12
+  end
+
+  def rentabilidad_bruta
+    return 0 if inversion_total.zero?
+    (renta_anual_bruta / inversion_total * 100).round(2)
+  end
+
+  def renta_neta_anual
+    (renta_anual_bruta - (gastos_anuales_alquiler || 0)) * ((ocupacion_pct || 100) / 100.0)
+  end
+
+  def rentabilidad_neta
+    return 0 if inversion_total.zero?
+    (renta_neta_anual / inversion_total * 100).round(2)
+  end
+
+  def cash_flow_mensual_neto
+    renta_neta_anual / 12.0
+  end
+
+  def payback_years
+    return nil if renta_neta_anual <= 0
+    (inversion_total / renta_neta_anual).round(1)
   end
 
   private

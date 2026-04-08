@@ -26,6 +26,7 @@ class Family < ApplicationRecord
   has_many :accounts, dependent: :destroy
   has_many :invitations, dependent: :destroy
 
+  has_many :net_worth_snapshots, dependent: :destroy
   has_many :imports, dependent: :destroy
   has_many :family_exports, dependent: :destroy
 
