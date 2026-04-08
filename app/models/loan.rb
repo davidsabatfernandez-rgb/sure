@@ -104,6 +104,116 @@ class Loan < ApplicationRecord
     }
   end
 
+  # Smart amortization analysis comparing loan cost vs investment returns
+  def amortization_analysis(family)
+    return nil if interest_rate.nil?
+
+    # Gather family financial context
+    all_accounts = family.accounts.active
+    loans = all_accounts.where(accountable_type: "Loan").includes(:accountable)
+    investments = all_accounts.where(accountable_type: %w[Investment Conjunta])
+
+    # Known return rates
+    savings_rate = 2.0 # Remuneradas TIN
+    loan_rate = interest_rate
+
+    schedule = amortization_schedule
+    return nil if schedule.empty?
+
+    # Find the crossover point: where monthly interest < what you'd earn investing
+    crossover_month = nil
+    schedule.each do |month|
+      monthly_investment_return = month[:pendiente] * (savings_rate / 100.0 / 12.0)
+      if month[:intereses] < monthly_investment_return
+        crossover_month = month[:month]
+        break
+      end
+    end
+
+    # Calculate total interest by year blocks
+    interest_by_year = schedule.each_slice(12).map.with_index do |year_months, i|
+      total_interest = year_months.sum { |m| m[:intereses] }
+      total_capital = year_months.sum { |m| m[:capital] }
+      last_pending = year_months.last&.dig(:pendiente) || 0
+      {
+        year: i + 1,
+        total_interest: total_interest.round(2),
+        total_capital: total_capital.round(2),
+        pending: last_pending.round(2),
+        interest_pct: (total_interest + total_capital) > 0 ? (total_interest / (total_interest + total_capital) * 100).round(1) : 0
+      }
+    end
+
+    # Opportunity cost: if you put X euros to amortize vs invest at savings_rate
+    amounts_to_test = [5000, 10000, 20000, 50000].select { |a| a <= account.balance.to_f.abs * 0.8 }
+    opportunity_analysis = amounts_to_test.map do |amount|
+      sim = simulate(amortizacion_anticipada: amount)
+      interest_saved = sim[:intereses_ahorrados]
+      # What would that money earn in savings over the remaining loan period?
+      months_remaining = schedule.size
+      investment_earned = amount * (savings_rate / 100.0) * (months_remaining / 12.0)
+
+      {
+        amount: amount,
+        interest_saved: interest_saved,
+        investment_earned: investment_earned.round(2),
+        net_benefit: (interest_saved - investment_earned).round(2),
+        months_saved: sim[:meses_ahorrados],
+        recommendation: interest_saved > investment_earned ? "amortizar" : "invertir"
+      }
+    end
+
+    # Build AI context summary
+    other_loans = loans.reject { |l| l.id == account.id }.map do |l|
+      { name: l.name, balance: l.balance.to_f.abs, rate: l.accountable.interest_rate }
+    end
+
+    {
+      loan_rate: loan_rate,
+      savings_rate: savings_rate,
+      capital_pendiente: account.balance.to_f.abs,
+      crossover_month: crossover_month,
+      interest_by_year: interest_by_year,
+      opportunity_analysis: opportunity_analysis,
+      other_loans: other_loans,
+      total_liquid: investments.sum(:balance).to_f,
+      recommendation_summary: build_recommendation(loan_rate, savings_rate, opportunity_analysis, other_loans)
+    }
+  end
+
+  private
+    def build_recommendation(loan_rate, savings_rate, opportunity, other_loans)
+      lines = []
+
+      # Compare rates
+      if loan_rate > savings_rate
+        lines << "Tu préstamo cobra #{loan_rate}% vs tus ahorros que rinden #{savings_rate}%. Amortizar tiene sentido financiero."
+      else
+        lines << "Tu préstamo cobra #{loan_rate}% y tus ahorros rinden #{savings_rate}%. Matemáticamente es mejor invertir que amortizar."
+      end
+
+      # Check if there are higher-rate loans
+      higher_rate_loans = other_loans.select { |l| l[:rate] && l[:rate] > loan_rate }
+      if higher_rate_loans.any?
+        names = higher_rate_loans.map { |l| "#{l[:name]} (#{l[:rate]}%)" }.join(", ")
+        lines << "Prioridad: amortizar primero #{names} que tienen tipo más alto."
+      end
+
+      # Best opportunity
+      best = opportunity.max_by { |o| o[:net_benefit] }
+      if best
+        if best[:recommendation] == "amortizar"
+          lines << "Amortizar #{best[:amount].to_i}€ te ahorraría #{best[:interest_saved].round(0)}€ en intereses (#{best[:months_saved]} meses menos)."
+        else
+          lines << "Invertir #{best[:amount].to_i}€ al #{savings_rate}% generaría #{best[:investment_earned].round(0)}€, más que los #{best[:interest_saved].round(0)}€ que ahorrarías amortizando."
+        end
+      end
+
+      lines.join(" ")
+    end
+
+  public
+
   private
     def monthly_payment_amount(capital = nil)
       cap = capital || account.balance.to_f.abs

@@ -8,6 +8,7 @@ class LoanAmortizationController < ApplicationController
     @fecha_liquidacion = @loan.fecha_liquidacion
     @pct_amortizado = @loan.porcentaje_amortizado
     @coste_total = @loan.coste_total
+    @analysis = @loan.amortization_analysis(Current.family)
   end
 
   def simulate
