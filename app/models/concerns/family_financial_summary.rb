@@ -1,114 +1,86 @@
 module FamilyFinancialSummary
   extend ActiveSupport::Concern
 
-  DEFAULT_MONTHLY_BUDGET = 3000
-  DEFAULT_SAVINGS_GOAL = 2800
+  # Categories that are transfers between accounts, not real expenses
+  TRANSFER_CATEGORIES = ["Services", "Savings & Investments"].freeze
 
-  # Sum of today's expense transactions (positive amounts = expenses)
-  def today_spending(user: Current.user)
-    expense_entries_for(user: user)
-      .where(date: Date.current)
-      .sum(:amount)
+  def spending_entries_for(start_date, end_date)
+    transfer_cat_ids = categories.where(name: TRANSFER_CATEGORIES).pluck(:id)
+
+    scope = entries
+      .where(entryable_type: "Transaction", date: start_date..end_date)
+      .where("entries.excluded IS NOT TRUE")
+      .where("entries.amount < 5000") # large transfers
+
+    if transfer_cat_ids.any?
+      scope = scope.joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
+                   .where("transactions.category_id IS NULL OR transactions.category_id NOT IN (?)", transfer_cat_ids)
+    end
+
+    scope
   end
 
-  # Sum of this month's expense transactions
-  def month_spending(user: Current.user)
-    expense_entries_for(user: user)
-      .where(date: current_month_range)
-      .sum(:amount)
+  def today_spending
+    spending_entries_for(Date.current, Date.current)
+      .where("entries.amount > 0")
+      .sum("entries.amount").to_f
   end
 
-  # Sum of this month's income (negative amounts = income)
-  def month_income(user: Current.user)
-    income_entries_for(user: user)
-      .where(date: current_month_range)
-      .sum(:amount)
-      .abs
+  def month_spending(date = Date.current)
+    spending_entries_for(date.beginning_of_month, date)
+      .where("entries.amount > 0")
+      .sum("entries.amount").to_f
   end
 
-  # Income minus expenses this month
-  def month_savings(user: Current.user)
-    income = month_income(user: user)
-    expenses = month_spending(user: user)
-    income - expenses
+  def month_income(date = Date.current)
+    entries.where(date: date.beginning_of_month..date, entryable_type: "Transaction")
+           .where("entries.amount < 0")
+           .where("entries.name ILIKE '%nomina%' OR entries.name ILIKE '%level%' OR entries.name ILIKE '%iberia%'")
+           .sum("ABS(entries.amount)").to_f
   end
 
-  # Week spending (Monday to Sunday)
-  def week_spending(user: Current.user, week_start: Date.current.beginning_of_week)
-    week_end = week_start.end_of_week
-    expense_entries_for(user: user)
-      .where(date: week_start..week_end)
-      .sum(:amount)
+  def month_savings(date = Date.current)
+    month_income(date) - month_spending(date)
   end
 
-  # Top N expense categories for a date range
-  def top_expense_categories(user: Current.user, date_range: current_week_range, limit: 3)
-    account_ids = accounts_for_user(user).pluck(:id)
+  def week_spending(date = Date.current)
+    spending_entries_for(date.beginning_of_week, date)
+      .where("entries.amount > 0")
+      .sum("entries.amount").to_f
+  end
 
-    Entry.where(account_id: account_ids, entryable_type: "Transaction")
-         .where(excluded: false)
-         .where("amount > 0")
-         .where(date: date_range)
-         .joins("INNER JOIN transactions ON transactions.id = entries.entryable_id")
-         .joins("LEFT JOIN categories ON categories.id = transactions.category_id")
-         .group("categories.id", "categories.name", "categories.color", "categories.lucide_icon")
+  def last_week_spending
+    last_monday = 1.week.ago.to_date.beginning_of_week
+    spending_entries_for(last_monday, last_monday + 6.days)
+      .where("entries.amount > 0")
+      .sum("entries.amount").to_f
+  end
+
+  def top_expense_categories(start_date, end_date, limit = 5)
+    transfer_cat_ids = categories.where(name: TRANSFER_CATEGORIES).pluck(:id)
+
+    scope = entries
+      .joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
+      .joins("LEFT JOIN categories ON categories.id = transactions.category_id")
+      .where(entryable_type: "Transaction", date: start_date..end_date)
+      .where("entries.amount > 0 AND entries.amount < 5000")
+      .where("entries.excluded IS NOT TRUE")
+
+    scope = scope.where("transactions.category_id IS NULL OR transactions.category_id NOT IN (?)", transfer_cat_ids) if transfer_cat_ids.any?
+
+    scope.group("categories.name, categories.color")
          .order(Arel.sql("SUM(entries.amount) DESC"))
          .limit(limit)
-         .pluck(
-           Arel.sql("categories.name"),
-           Arel.sql("categories.color"),
-           Arel.sql("categories.lucide_icon"),
-           Arel.sql("SUM(entries.amount)")
-         )
-         .map do |name, color, icon, total|
-           {
-             name: name || "Sin categoría",
-             color: color || "#6b7280",
-             icon: icon || "circle",
-             total: total.to_f
-           }
-         end
+         .pluck(Arel.sql("COALESCE(categories.name, 'Sin categoría')"), "categories.color", Arel.sql("SUM(entries.amount)"))
+         .map { |name, color, total| { name: name, color: color || "#9E9E9E", total: total.to_f.round(2) } }
   end
 
-  # Last week's spending for comparison
-  def last_week_spending(user: Current.user)
-    last_week_start = 1.week.ago.to_date.beginning_of_week
-    week_spending(user: user, week_start: last_week_start)
-  end
-
-  private
-
-  def accounts_for_user(user)
-    user ? user.accessible_accounts.visible : accounts.visible
-  end
-
-  def expense_entries_for(user: Current.user)
-    account_ids = accounts_for_user(user).pluck(:id)
-
-    Entry.where(account_id: account_ids, entryable_type: "Transaction")
-         .where(excluded: false)
-         .where("amount > 0")
-  end
-
-  def income_entries_for(user: Current.user)
-    account_ids = accounts_for_user(user).pluck(:id)
-
-    Entry.where(account_id: account_ids, entryable_type: "Transaction")
-         .where(excluded: false)
-         .where("amount < 0")
-  end
-
-  def current_month_range
-    if uses_custom_month_start?
-      start_date = custom_month_start_for(Date.current)
-      end_date = custom_month_end_for(Date.current)
-      start_date..end_date
-    else
-      Date.current.beginning_of_month..Date.current.end_of_month
-    end
-  end
-
-  def current_week_range
-    Date.current.beginning_of_week..Date.current.end_of_week
+  def average_monthly_spending(months = 3)
+    start_date = months.months.ago.to_date.beginning_of_month
+    end_date = 1.month.ago.to_date.end_of_month
+    total = spending_entries_for(start_date, end_date)
+              .where("entries.amount > 0")
+              .sum("entries.amount").to_f
+    months > 0 ? total / months : 0
   end
 end

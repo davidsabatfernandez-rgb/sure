@@ -1,10 +1,11 @@
 <% today_spent = Current.family.today_spending %>
 <% month_spent = Current.family.month_spending %>
-<% month_budget = FamilyFinancialSummary::DEFAULT_MONTHLY_BUDGET %>
+<% avg_spending = Current.family.average_monthly_spending(3) %>
+<% month_budget = avg_spending > 0 ? avg_spending.round(0) : 1500 %>
+<% month_income_val = Current.family.month_income %>
 <% month_saved = Current.family.month_savings %>
-<% savings_goal = FamilyFinancialSummary::DEFAULT_SAVINGS_GOAL %>
 <% budget_pct = month_budget.zero? ? 0 : [(month_spent / month_budget.to_f * 100).round, 100].min %>
-<% savings_pct = savings_goal.zero? ? 0 : [(month_saved / savings_goal.to_f * 100).clamp(0, 100).round, 100].min %>
+<% savings_pct = month_income_val > 0 ? [(month_saved / month_income_val.to_f * 100).clamp(0, 100).round, 100].min : 0 %>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
   <%# Today's spending %>
@@ -13,25 +14,25 @@
       <%= icon("shopping-cart", size: "sm", color: "current", class: "text-secondary") %>
       <span class="text-sm text-secondary">Hoy has gastado</span>
     </div>
-    <p class="text-2xl font-semibold text-primary">
-      <%= format_money(today_spent, { currency: Current.family.currency }) %>
+    <p class="text-2xl font-semibold <%= today_spent > 100 ? 'text-destructive' : 'text-primary' %>">
+      <%= number_to_currency(today_spent, unit: "", delimiter: ".", separator: ",") %> &euro;
     </p>
   </div>
 
-  <%# Monthly spending vs budget %>
+  <%# Monthly spending vs average %>
   <div class="bg-container rounded-xl shadow-border-xs p-4">
     <div class="flex items-center gap-2 mb-1">
       <%= icon("wallet", size: "sm", color: "current", class: "text-secondary") %>
       <span class="text-sm text-secondary">Este mes llevas</span>
     </div>
     <p class="text-2xl font-semibold text-primary">
-      <%= format_money(month_spent, { currency: Current.family.currency }) %>
-      <span class="text-sm font-normal text-secondary">de <%= number_to_currency(month_budget, unit: "", delimiter: ".", separator: ",") %>&euro;</span>
+      <%= number_to_currency(month_spent, unit: "", delimiter: ".", separator: ",") %> &euro;
+      <span class="text-sm font-normal text-secondary">de ~<%= number_to_currency(month_budget, unit: "", delimiter: ".", separator: ",") %>&euro; media</span>
     </p>
-    <div class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-      <div class="<%= budget_pct >= 90 ? 'bg-red-500' : budget_pct >= 70 ? 'bg-yellow-500' : 'bg-green-500' %> h-2.5 rounded-full transition-all duration-300" style="width: <%= budget_pct %>%"></div>
+    <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+      <div class="<%= budget_pct >= 90 ? 'bg-red-500' : budget_pct >= 70 ? 'bg-yellow-500' : 'bg-green-500' %> h-2 rounded-full transition-all" style="width: <%= budget_pct %>%"></div>
     </div>
-    <p class="text-xs text-secondary mt-1"><%= budget_pct %>% del presupuesto</p>
+    <p class="text-xs text-secondary mt-1"><%= budget_pct %>% vs tu media mensual</p>
   </div>
 
   <%# Monthly savings %>
@@ -40,13 +41,18 @@
       <%= icon("piggy-bank", size: "sm", color: "current", class: "text-secondary") %>
       <span class="text-sm text-secondary">Ahorrado este mes</span>
     </div>
-    <p class="text-2xl font-semibold <%= month_saved >= 0 ? 'text-success' : 'text-destructive' %>">
-      <%= format_money(month_saved.abs, { currency: Current.family.currency }) %>
-      <span class="text-sm font-normal text-secondary">de <%= number_to_currency(savings_goal, unit: "", delimiter: ".", separator: ",") %>&euro;</span>
-    </p>
-    <div class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-      <div class="bg-green-500 h-2.5 rounded-full transition-all duration-300" style="width: <%= savings_pct %>%"></div>
-    </div>
-    <p class="text-xs text-secondary mt-1"><%= savings_pct %>% del objetivo</p>
+    <% if month_income_val > 0 %>
+      <p class="text-2xl font-semibold <%= month_saved >= 0 ? 'text-success' : 'text-destructive' %>">
+        <%= number_to_currency(month_saved.abs, unit: "", delimiter: ".", separator: ",") %> &euro;
+        <span class="text-sm font-normal text-secondary">(<%= savings_pct %>% del ingreso)</span>
+      </p>
+    <% else %>
+      <p class="text-2xl font-semibold text-secondary">Sin n&oacute;mina a&uacute;n</p>
+    <% end %>
+    <% if month_income_val > 0 %>
+      <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+        <div class="bg-green-500 h-2 rounded-full transition-all" style="width: <%= savings_pct %>%"></div>
+      </div>
+    <% end %>
   </div>
 </div>
