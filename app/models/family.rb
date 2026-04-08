@@ -3,6 +3,7 @@ class Family < ApplicationRecord
   include PlaidConnectable, SimplefinConnectable, LunchflowConnectable, EnableBankingConnectable
   include CoinbaseConnectable, CoinstatsConnectable, SnaptradeConnectable, MercuryConnectable
   include IndexaCapitalConnectable
+  include FamilyFinancialSummary
 
   DATE_FORMATS = [
     [ "MM-DD-YYYY", "%m-%d-%Y" ],
@@ -27,6 +28,9 @@ class Family < ApplicationRecord
   has_many :invitations, dependent: :destroy
 
   has_many :net_worth_snapshots, dependent: :destroy
+  has_many :investment_rules, dependent: :destroy
+  has_many :financial_alerts, dependent: :destroy
+  has_many :roadmap_milestones, dependent: :destroy
   has_many :imports, dependent: :destroy
   has_many :family_exports, dependent: :destroy
 

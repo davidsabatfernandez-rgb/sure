@@ -1,0 +1,19 @@
+---
+en:
+  financial_alerts:
+    index:
+      title: Financial Alerts
+      mark_all_read: Mark all as read
+      unread_count:
+        one: You have %{count} unread alert
+        other: You have %{count} unread alerts
+      empty: No alerts yet. We'll notify you when something important happens.
+      alert_types:
+        budget_exceeded: Budget Exceeded
+        savings_goal: Savings Goal
+        loan_milestone: Loan Milestone
+        inactivity: Inactivity
+    mark_read:
+      success: Alert marked as read
+    mark_all_read:
+      success: All alerts marked as read

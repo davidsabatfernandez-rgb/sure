@@ -1,0 +1,56 @@
+<% content_for :breadcrumbs do %>
+  <%= render "layouts/shared/breadcrumbs", breadcrumbs: [{ label: "Dashboard", href: root_path }, { label: "Salud financiera" }] %>
+<% end %>
+
+<div class="space-y-6 max-w-screen-lg mx-auto py-6">
+  <h1 class="text-2xl font-bold text-primary">Salud financiera</h1>
+
+  <%# Score circle %>
+  <div class="bg-container shadow-border-xs rounded-xl p-8 flex flex-col items-center">
+    <div class="relative w-40 h-40 mb-4">
+      <svg class="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-opacity="0.1" stroke-width="10"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="<%= @color %>" stroke-width="10"
+                stroke-dasharray="<%= (326.7 * @score / 100.0).round(1) %> 326.7"
+                stroke-linecap="round"/>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <span class="text-4xl font-bold" style="color: <%= @color %>"><%= @score %></span>
+        <span class="text-xs text-secondary">de 100</span>
+      </div>
+    </div>
+    <p class="text-lg font-medium text-primary">
+      <% if @score >= 80 %>Excelente<% elsif @score >= 60 %>Buena<% elsif @score >= 40 %>Mejorable<% else %>Necesita atenci&oacute;n<% end %>
+    </p>
+  </div>
+
+  <%# Breakdown %>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <% @breakdown.each do |key, data| %>
+      <div class="bg-container shadow-border-xs rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-primary"><%= data[:label] %></h3>
+          <span class="text-sm font-bold <%= data[:score] >= 70 ? 'text-success' : data[:score] >= 40 ? 'text-warning' : 'text-destructive' %>"><%= data[:score] %>/100</span>
+        </div>
+        <div class="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
+          <div class="h-full rounded-full <%= data[:score] >= 70 ? 'bg-green-500' : data[:score] >= 40 ? 'bg-yellow-500' : 'bg-red-500' %>" style="width: <%= data[:score] %>%"></div>
+        </div>
+        <p class="text-xs text-secondary"><%= data[:detail] %></p>
+        <p class="text-xs text-secondary mt-1">Peso: <%= data[:weight] %>%</p>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Recommendations %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4">
+    <h2 class="text-lg font-medium text-primary mb-3">Recomendaciones</h2>
+    <div class="space-y-2">
+      <% @recommendations.each do |rec| %>
+        <div class="flex items-start gap-2 p-2">
+          <%= icon("lightbulb", size: "sm", class: "text-yellow-500 mt-0.5 shrink-0") %>
+          <p class="text-sm text-primary"><%= rec %></p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

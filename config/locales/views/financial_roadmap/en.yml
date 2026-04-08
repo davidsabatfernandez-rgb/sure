@@ -1,0 +1,41 @@
+---
+en:
+  financial_roadmap:
+    show:
+      title: "Financial Roadmap"
+      timeline: "Timeline"
+      add_milestone: "Add new milestone"
+      empty: "No milestones yet. Add your first financial goal below."
+      confirm_delete: "Are you sure you want to delete this milestone?"
+      on_track: "On track"
+      behind: "Behind schedule"
+      completed: "Completed"
+      due_today: "Due today"
+      days_remaining:
+        one: "%{count} day remaining"
+        other: "%{count} days remaining"
+      overdue:
+        one: "%{count} day overdue"
+        other: "%{count} days overdue"
+      estados:
+        pendiente: "Pending"
+        en_progreso: "In Progress"
+        completado: "Completed"
+      form:
+        nombre: "Name"
+        nombre_placeholder: "e.g. Emergency fund"
+        monto_objetivo: "Target amount"
+        fecha_inicio: "Start date"
+        fecha_objetivo: "Target date"
+        descripcion: "Description"
+        descripcion_placeholder: "Optional notes about this goal..."
+        monto_actual: "Current amount"
+        estado: "Status"
+        color: "Color"
+        submit: "Add Milestone"
+    create:
+      success: "Milestone created successfully."
+    update:
+      success: "Milestone updated successfully."
+    destroy:
+      success: "Milestone deleted successfully."

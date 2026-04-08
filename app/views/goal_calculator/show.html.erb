@@ -1,0 +1,112 @@
+<div class="pb-6 lg:pb-12 space-y-6" data-controller="goal-calculator">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-medium text-primary"><%= t("goal_calculator.show.title") %></h1>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%# Input panel %>
+    <div class="bg-container rounded-xl shadow-border-xs p-6 space-y-5">
+      <h2 class="text-lg font-medium text-primary"><%= t("goal_calculator.show.parameters") %></h2>
+
+      <%# Pre-built scenarios %>
+      <div>
+        <label class="block text-sm font-medium text-primary mb-1"><%= t("goal_calculator.show.scenarios_label") %></label>
+        <select class="w-full rounded-lg bg-container shadow-border-xs px-3 py-2 text-sm text-primary"
+                data-action="change->goal-calculator#loadScenario"
+                data-goal-calculator-target="scenarioSelect">
+          <option value=""><%= t("goal_calculator.show.custom_scenario") %></option>
+          <option value="100000|500|0|0" data-label="Obra Iglesia (100k)">Obra Iglesia (100k)</option>
+          <option value="9500|300|0|0" data-label="Liquidar coche (9.5k)">Liquidar coche (9.5k)</option>
+          <option value="15000|400|0|0" data-label="Colch&oacute;n 15k">Colch&oacute;n 15k</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-primary mb-1"><%= t("goal_calculator.show.objetivo_label") %></label>
+        <div class="relative">
+          <input type="number" step="100" min="0"
+                 class="w-full rounded-lg bg-container shadow-border-xs px-3 py-2 text-sm text-primary pr-8"
+                 data-goal-calculator-target="objetivo"
+                 data-action="input->goal-calculator#calculate"
+                 placeholder="50000">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-secondary">&euro;</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-primary mb-1"><%= t("goal_calculator.show.ahorro_label") %></label>
+        <div class="relative">
+          <input type="number" step="50" min="0"
+                 class="w-full rounded-lg bg-container shadow-border-xs px-3 py-2 text-sm text-primary pr-8"
+                 data-goal-calculator-target="ahorro"
+                 data-action="input->goal-calculator#calculate"
+                 placeholder="500">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-secondary">&euro;/mes</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-primary mb-1"><%= t("goal_calculator.show.interes_label") %></label>
+        <div class="relative">
+          <input type="number" step="0.1" min="0" max="100"
+                 class="w-full rounded-lg bg-container shadow-border-xs px-3 py-2 text-sm text-primary pr-8"
+                 data-goal-calculator-target="interes"
+                 data-action="input->goal-calculator#calculate"
+                 value="0"
+                 placeholder="3.5">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-secondary">%</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-primary mb-1"><%= t("goal_calculator.show.inicial_label") %></label>
+        <div class="relative">
+          <input type="number" step="100" min="0"
+                 class="w-full rounded-lg bg-container shadow-border-xs px-3 py-2 text-sm text-primary pr-8"
+                 data-goal-calculator-target="inicial"
+                 data-action="input->goal-calculator#calculate"
+                 value="0"
+                 placeholder="0">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-secondary">&euro;</span>
+        </div>
+      </div>
+    </div>
+
+    <%# Results panel %>
+    <div class="bg-container rounded-xl shadow-border-xs p-6 space-y-5">
+      <h2 class="text-lg font-medium text-primary"><%= t("goal_calculator.show.results") %></h2>
+
+      <div data-goal-calculator-target="resultsPanel" class="hidden space-y-4">
+        <%# Key metrics %>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-surface-inset rounded-xl p-4">
+            <p class="text-xs text-secondary uppercase tracking-wide mb-1"><%= t("goal_calculator.show.target_date") %></p>
+            <p class="text-lg font-semibold text-primary" data-goal-calculator-target="fechaResult">--</p>
+          </div>
+          <div class="bg-surface-inset rounded-xl p-4">
+            <p class="text-xs text-secondary uppercase tracking-wide mb-1"><%= t("goal_calculator.show.months_needed") %></p>
+            <p class="text-lg font-semibold text-primary" data-goal-calculator-target="mesesResult">--</p>
+          </div>
+          <div class="bg-surface-inset rounded-xl p-4">
+            <p class="text-xs text-secondary uppercase tracking-wide mb-1"><%= t("goal_calculator.show.total_interest") %></p>
+            <p class="text-lg font-semibold text-success" data-goal-calculator-target="interesResult">--</p>
+          </div>
+          <div class="bg-surface-inset rounded-xl p-4">
+            <p class="text-xs text-secondary uppercase tracking-wide mb-1"><%= t("goal_calculator.show.total_saved") %></p>
+            <p class="text-lg font-semibold text-primary" data-goal-calculator-target="totalResult">--</p>
+          </div>
+        </div>
+
+        <%# Chart %>
+        <div class="bg-surface-inset rounded-xl p-4">
+          <p class="text-sm font-medium text-primary mb-3"><%= t("goal_calculator.show.accumulation_chart") %></p>
+          <div data-goal-calculator-target="chart" class="w-full h-[250px]"></div>
+        </div>
+      </div>
+
+      <div data-goal-calculator-target="emptyState" class="text-center py-12">
+        <p class="text-secondary"><%= t("goal_calculator.show.empty_state") %></p>
+      </div>
+    </div>
+  </div>
+</div>

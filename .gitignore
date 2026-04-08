@@ -119,3 +119,4 @@ scripts/
 .worktrees/
 .security-key
 logs/security/
+.claude/worktrees/

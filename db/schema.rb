@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_08_200003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -584,6 +584,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
     t.index ["merchant_id"], name: "index_family_merchant_associations_on_merchant_id"
   end
 
+  create_table "financial_alerts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "alert_type", null: false
+    t.string "message", null: false
+    t.string "severity", default: "info"
+    t.boolean "read", default: false
+    t.date "date", null: false
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_financial_alerts_on_family_id"
+  end
+
   create_table "holdings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id", null: false
     t.uuid "security_id", null: false
@@ -763,6 +776,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
     t.text "api_token"
     t.index ["family_id"], name: "index_indexa_capital_items_on_family_id"
     t.index ["status"], name: "index_indexa_capital_items_on_status"
+  end
+
+  create_table "investment_rules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "category_id", null: false
+    t.integer "percentage", default: 10, null: false
+    t.string "target_type", default: "savings"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_investment_rules_on_category_id"
+    t.index ["family_id"], name: "index_investment_rules_on_family_id"
   end
 
   create_table "investments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1178,6 +1203,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
     t.index ["inflow_transaction_id", "outflow_transaction_id"], name: "idx_on_inflow_transaction_id_outflow_transaction_id_412f8e7e26", unique: true
     t.index ["inflow_transaction_id"], name: "index_rejected_transfers_on_inflow_transaction_id"
     t.index ["outflow_transaction_id"], name: "index_rejected_transfers_on_outflow_transaction_id"
+  end
+
+  create_table "roadmap_milestones", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "nombre", null: false
+    t.text "descripcion"
+    t.date "fecha_inicio", null: false
+    t.date "fecha_objetivo", null: false
+    t.decimal "monto_objetivo", precision: 19, scale: 4
+    t.decimal "monto_actual", precision: 19, scale: 4, default: "0.0"
+    t.string "estado", default: "pendiente"
+    t.string "color", default: "#3B82F6"
+    t.integer "orden", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_roadmap_milestones_on_family_id"
   end
 
   create_table "rule_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1626,6 +1667,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
   add_foreign_key "family_exports", "families"
   add_foreign_key "family_merchant_associations", "families"
   add_foreign_key "family_merchant_associations", "merchants"
+  add_foreign_key "financial_alerts", "families"
   add_foreign_key "holdings", "account_providers"
   add_foreign_key "holdings", "accounts", on_delete: :cascade
   add_foreign_key "holdings", "securities"
@@ -1637,6 +1679,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
   add_foreign_key "imports", "families"
   add_foreign_key "indexa_capital_accounts", "indexa_capital_items"
   add_foreign_key "indexa_capital_items", "families"
+  add_foreign_key "investment_rules", "categories"
+  add_foreign_key "investment_rules", "families"
   add_foreign_key "invitations", "families"
   add_foreign_key "invitations", "users", column: "inviter_id"
   add_foreign_key "llm_usages", "families"
@@ -1661,6 +1705,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_08_100001) do
   add_foreign_key "reforms", "properties"
   add_foreign_key "rejected_transfers", "transactions", column: "inflow_transaction_id"
   add_foreign_key "rejected_transfers", "transactions", column: "outflow_transaction_id"
+  add_foreign_key "roadmap_milestones", "families"
   add_foreign_key "rule_actions", "rules"
   add_foreign_key "rule_conditions", "rule_conditions", column: "parent_id"
   add_foreign_key "rule_conditions", "rules"

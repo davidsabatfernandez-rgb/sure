@@ -395,6 +395,23 @@ Rails.application.routes.draw do
     post :save_snapshot
   end
 
+  resource :weekly_summary, only: :show
+  resources :investment_rules, only: [:index, :create, :update, :destroy]
+  resources :financial_alerts, only: :index do
+    member do
+      patch :mark_read
+    end
+    collection do
+      patch :mark_all_read
+    end
+  end
+  resource :financial_roadmap, only: :show, controller: "financial_roadmap" do
+    resources :milestones, only: [:create, :update, :destroy], controller: "financial_roadmap"
+  end
+  resource :goal_calculator, only: :show
+  resource :financial_health, only: :show
+  resource :passive_income, only: :show
+
   resources :securities, only: :index
 
   resources :invite_codes, only: %i[index create destroy]

@@ -1,0 +1,19 @@
+---
+en:
+  goal_calculator:
+    show:
+      title: "Goal Calculator"
+      parameters: "Parameters"
+      results: "Results"
+      scenarios_label: "Quick scenarios"
+      custom_scenario: "-- Custom --"
+      objetivo_label: "Goal amount"
+      ahorro_label: "Monthly savings"
+      interes_label: "Annual interest rate"
+      inicial_label: "Initial amount"
+      target_date: "Target date"
+      months_needed: "Months needed"
+      total_interest: "Total interest earned"
+      total_saved: "Total accumulated"
+      accumulation_chart: "Accumulation over time"
+      empty_state: "Enter a goal amount and monthly savings to see your projection."

@@ -1,0 +1,36 @@
+---
+en:
+  investment_rules:
+    index:
+      title: Investment Rules
+      monthly_summary: Monthly Investment Summary
+      monthly_explanation: This is how much you should invest this month based on your spending
+      new_rule: Add New Rule
+      select_category: Select a category
+      category: Category
+      percentage: Percentage (%)
+      target: Investment Target
+      add_rule: Add Rule
+      active_rules: Active Rules
+      empty: No investment rules yet. Add your first rule above.
+      delete: Delete
+      confirm_delete: Are you sure you want to delete this rule?
+      target_types:
+        savings: Savings
+        crypto: Crypto
+        stocks: Stocks
+      table:
+        category: Category
+        percentage: "%"
+        target: Target
+        spent_this_month: Spent This Month
+        to_invest: To Invest
+        actions: Actions
+        total: Total
+    create:
+      success: Investment rule created successfully
+    update:
+      success: Investment rule updated successfully
+      error: Could not update investment rule
+    destroy:
+      success: Investment rule deleted successfully

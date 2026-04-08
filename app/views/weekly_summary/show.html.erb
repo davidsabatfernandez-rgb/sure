@@ -1,0 +1,139 @@
+<% content_for :page_header do %>
+  <div class="space-y-1 mb-6">
+    <h1 class="text-xl lg:text-3xl font-medium text-primary">Resumen semanal</h1>
+    <p class="text-sm lg:text-base text-secondary">
+      Semana del <%= Date.current.beginning_of_week.strftime("%d/%m") %> al <%= Date.current.end_of_week.strftime("%d/%m/%Y") %>
+    </p>
+  </div>
+<% end %>
+
+<div class="space-y-6 pb-6 lg:pb-12">
+
+  <%# Row 1: Week spending + comparison %>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-container rounded-xl shadow-border-xs p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <%= icon("receipt", size: "sm", color: "current", class: "text-secondary") %>
+        <span class="text-sm text-secondary">Gastado esta semana</span>
+      </div>
+      <p class="text-3xl font-semibold text-primary">
+        <%= format_money(@week_spending, { currency: Current.family.currency }) %>
+      </p>
+    </div>
+
+    <div class="bg-container rounded-xl shadow-border-xs p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <%= icon("arrow-left-right", size: "sm", color: "current", class: "text-secondary") %>
+        <span class="text-sm text-secondary">vs. semana pasada</span>
+      </div>
+      <p class="text-3xl font-semibold text-primary">
+        <%= format_money(@last_week_spending, { currency: Current.family.currency }) %>
+      </p>
+      <% if @spending_diff != 0 %>
+        <p class="text-sm mt-1 <%= @spending_diff > 0 ? 'text-destructive' : 'text-success' %>">
+          <% if @spending_diff > 0 %>
+            <%= icon("trending-up", size: "xs", color: "current", class: "inline") %>
+            +<%= format_money(@spending_diff.abs, { currency: Current.family.currency }) %> (<%= @spending_diff_pct %>% mas)
+          <% else %>
+            <%= icon("trending-down", size: "xs", color: "current", class: "inline") %>
+            -<%= format_money(@spending_diff.abs, { currency: Current.family.currency }) %> (<%= @spending_diff_pct.abs %>% menos)
+          <% end %>
+        </p>
+      <% else %>
+        <p class="text-sm mt-1 text-secondary">Mismo gasto que la semana pasada</p>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Row 2: Top 3 expense categories %>
+  <div class="bg-container rounded-xl shadow-border-xs p-6">
+    <div class="flex items-center gap-2 mb-4">
+      <%= icon("bar-chart-3", size: "sm", color: "current", class: "text-secondary") %>
+      <h2 class="text-base font-medium text-primary">Top categorias de gasto</h2>
+    </div>
+
+    <% if @top_categories.any? %>
+      <div class="space-y-3">
+        <% @top_categories.each_with_index do |cat, idx| %>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background-color: <%= cat[:color] %>20">
+                <%= icon(cat[:icon], size: "sm", color: "current", class: "text-current", style: "color: #{cat[:color]}") %>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-primary"><%= cat[:name] %></p>
+                <p class="text-xs text-secondary">#<%= idx + 1 %> esta semana</p>
+              </div>
+            </div>
+            <p class="text-sm font-semibold text-primary">
+              <%= format_money(cat[:total], { currency: Current.family.currency }) %>
+            </p>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary">No hay gastos categorizados esta semana.</p>
+    <% end %>
+  </div>
+
+  <%# Row 3: Monthly savings progress %>
+  <div class="bg-container rounded-xl shadow-border-xs p-6">
+    <div class="flex items-center gap-2 mb-2">
+      <%= icon("piggy-bank", size: "sm", color: "current", class: "text-secondary") %>
+      <h2 class="text-base font-medium text-primary">Ahorro acumulado este mes</h2>
+    </div>
+    <p class="text-3xl font-semibold <%= @month_savings >= 0 ? 'text-success' : 'text-destructive' %>">
+      <%= format_money(@month_savings.abs, { currency: Current.family.currency }) %>
+      <span class="text-sm font-normal text-secondary">de <%= number_to_currency(@savings_goal, unit: "", delimiter: ".", separator: ",") %>&euro;</span>
+    </p>
+    <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+      <div class="bg-green-500 h-3 rounded-full transition-all duration-300" style="width: <%= @savings_pct %>%"></div>
+    </div>
+    <div class="flex justify-between mt-1">
+      <p class="text-xs text-secondary"><%= @savings_pct %>% del objetivo</p>
+      <p class="text-xs text-secondary">
+        Ingresos: <%= format_money(@month_income, { currency: Current.family.currency }) %> |
+        Gastos: <%= format_money(@month_spending, { currency: Current.family.currency }) %>
+      </p>
+    </div>
+  </div>
+
+  <%# Row 4: Motivational message %>
+  <div class="bg-container rounded-xl shadow-border-xs p-6">
+    <div class="flex items-center gap-2 mb-2">
+      <%= icon("sparkles", size: "sm", color: "current", class: "text-yellow-500") %>
+      <h2 class="text-base font-medium text-primary">Motivacion</h2>
+    </div>
+
+    <% if @month_savings > 0 %>
+      <% if @months_to_payoff && @months_to_payoff <= 60 %>
+        <p class="text-sm text-primary">
+          Si sigues asi, liquidaras el coche en
+          <span class="font-semibold text-success"><%= @months_to_payoff %> meses</span>.
+          Vas por buen camino.
+        </p>
+      <% else %>
+        <p class="text-sm text-primary">
+          Este mes estas ahorrando bien. Sigue asi y alcanzaras tus objetivos financieros.
+        </p>
+      <% end %>
+    <% elsif @month_savings == 0 %>
+      <p class="text-sm text-primary">
+        Este mes vas justo. Revisa tus gastos para encontrar donde recortar.
+      </p>
+    <% else %>
+      <p class="text-sm text-destructive">
+        Ojo, este mes estas gastando mas de lo que ingresas.
+        Revisa tus gastos y busca donde puedes ajustar.
+      </p>
+    <% end %>
+
+    <% if @spending_diff < 0 %>
+      <p class="text-sm text-success mt-2">
+        <%= icon("thumbs-up", size: "xs", color: "current", class: "inline") %>
+        Esta semana has gastado menos que la anterior. Buen trabajo.
+      </p>
+    <% end %>
+  </div>
+
+</div>

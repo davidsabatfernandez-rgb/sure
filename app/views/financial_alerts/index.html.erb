@@ -1,0 +1,74 @@
+<%= content_for :page_title, t(".title") %>
+<%= content_for :page_actions do %>
+  <% if @unread_count > 0 %>
+    <%= button_to t(".mark_all_read"),
+          mark_all_read_financial_alerts_path,
+          method: :post,
+          class: "btn btn-outline text-sm" %>
+  <% end %>
+<% end %>
+
+<div class="space-y-4">
+  <% if @unread_count > 0 %>
+    <div class="bg-container rounded-xl shadow-border-xs p-4">
+      <p class="text-sm text-secondary">
+        <%= t(".unread_count", count: @unread_count) %>
+      </p>
+    </div>
+  <% end %>
+
+  <div class="bg-container rounded-xl shadow-border-xs">
+    <% if @alerts.any? %>
+      <div class="divide-y divide-primary">
+        <% @alerts.each do |alert| %>
+          <div class="p-4 flex items-start gap-3 <%= alert.read? ? 'opacity-60' : '' %>">
+            <div class="mt-0.5">
+              <% case alert.severity %>
+              <% when "warning" %>
+                <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                  <%= icon("alert-triangle", size: "sm", class: "text-orange-600") %>
+                </div>
+              <% when "success" %>
+                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <%= icon("check-circle", size: "sm", class: "text-green-600") %>
+                </div>
+              <% else %>
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <%= icon("info", size: "sm", class: "text-blue-600") %>
+                </div>
+              <% end %>
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-medium uppercase text-secondary">
+                  <%= t(".alert_types.#{alert.alert_type}") %>
+                </span>
+                <% unless alert.read? %>
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                <% end %>
+              </div>
+              <p class="text-sm text-primary"><%= alert.message %></p>
+              <p class="text-xs text-secondary mt-1"><%= l(alert.date, format: :long) %></p>
+            </div>
+
+            <% unless alert.read? %>
+              <%= button_to mark_read_financial_alert_path(alert),
+                    method: :patch,
+                    class: "text-secondary hover:text-primary" do %>
+                <%= icon("check", size: "sm") %>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="flex justify-center items-center py-12">
+        <div class="text-center">
+          <%= icon("bell-off", size: "lg", class: "text-secondary mx-auto mb-2") %>
+          <p class="text-sm text-secondary"><%= t(".empty") %></p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
