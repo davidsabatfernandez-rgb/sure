@@ -82,6 +82,63 @@ class Loan < ApplicationRecord
     initial_balance + total_intereses_restantes
   end
 
+  # Current month breakdown
+  def current_month_breakdown
+    schedule = amortization_schedule
+    return nil if schedule.empty?
+    first = schedule.first
+    {
+      cuota: first[:cuota],
+      capital: first[:capital],
+      intereses: first[:intereses],
+      capital_pct: ((first[:capital] / first[:cuota]) * 100).round(1),
+      intereses_pct: ((first[:intereses] / first[:cuota]) * 100).round(1)
+    }
+  end
+
+  # How much interest you've already paid (estimated)
+  def intereses_ya_pagados
+    return 0 if initial_balance.nil? || interest_rate.nil?
+    total_paid = initial_balance - account.balance.to_f.abs
+    # Rough estimate: total payments made - capital repaid
+    months_elapsed = ((Date.current - (account.entries.valuations.order(:date).first&.date || Date.current)) / 30.0).round
+    return 0 if months_elapsed <= 0
+    cuota = monthly_payment_amount(initial_balance)
+    total_payments = cuota * months_elapsed
+    total_payments - total_paid
+  end
+
+  # Full loan timeline data
+  def full_timeline
+    return [] if initial_balance.nil? || interest_rate.nil?
+    # Generate schedule from the ORIGINAL balance
+    r = interest_rate / 100.0 / 12.0
+    n = term_months || 360
+    cap = initial_balance.to_f
+    return [] if cap <= 0 || r <= 0
+
+    cuota = (cap * r * (1 + r)**n) / ((1 + r)**n - 1)
+    remaining = cap
+    timeline = []
+    month = 0
+
+    while remaining > 0.01 && month < 600
+      month += 1
+      int_mes = remaining * r
+      cap_mes = [cuota - int_mes, remaining].min
+      remaining -= cap_mes
+      timeline << {
+        month: month,
+        capital: cap_mes.round(2),
+        intereses: int_mes.round(2),
+        pendiente: [remaining, 0].max.round(2)
+      }
+      break if remaining <= 0.01
+    end
+
+    timeline
+  end
+
   # Simulate early repayment or increased payment
   def simulate(amortizacion_anticipada: 0, cuota_extra: 0)
     capital_actual = account.balance.to_f.abs

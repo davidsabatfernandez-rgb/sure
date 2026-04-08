@@ -4,10 +4,13 @@ class LoanAmortizationController < ApplicationController
   def show
     @loan = @account.accountable
     @schedule = @loan.amortization_schedule
+    @full_timeline = @loan.full_timeline
     @total_intereses = @loan.total_intereses_restantes
     @fecha_liquidacion = @loan.fecha_liquidacion
     @pct_amortizado = @loan.porcentaje_amortizado
     @coste_total = @loan.coste_total
+    @current_month = @loan.current_month_breakdown
+    @intereses_pagados = @loan.intereses_ya_pagados
     @analysis = @loan.amortization_analysis(Current.family)
   end
 
